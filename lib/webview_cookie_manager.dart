@@ -17,51 +17,42 @@ class WebviewCookieManager {
 
   /// Gets whether there are stored cookies
   Future<bool> hasCookies() {
-    return _channel
-        .invokeMethod<bool>('hasCookies')
-        .then<bool>((bool? result) => result ?? false);
+    return _channel.invokeMethod<bool>('hasCookies').then<bool>((bool? result) => result ?? false);
   }
 
   /// Read out all cookies, or all cookies for a [url] when provided
   Future<List<Cookie>> getCookies(String? url) {
-    return _channel.invokeListMethod<Map>('getCookies', {'url': url}).then(
-        (results) => results == null
-            ? <Cookie>[]
-            : results
-                .map((Map result) {
-                  Cookie? c;
-                  try {
-                    c = Cookie(result['name'] ?? '',
-                        removeInvalidCharacter(result['value'] ?? ''))
-                      // following values optionally work on iOS only
-                      ..path = result['path']
-                      ..domain = result['domain']
-                      ..secure = result['secure'] ?? false
-                      ..httpOnly = result['httpOnly'] ?? true;
+    return _channel.invokeListMethod<Map>('getCookies', {'url': url}).then((results) => results == null
+        ? <Cookie>[]
+        : results
+            .map((Map result) {
+              Cookie? c;
+              try {
+                c = Cookie(result['name'] ?? '', removeInvalidCharacter(result['value'] ?? ''))
+                  // following values optionally work on iOS only
+                  ..path = result['path']
+                  ..domain = result['domain']
+                  ..secure = result['secure'] ?? false
+                  ..httpOnly = result['httpOnly'] ?? true;
 
-                    if (result['expires'] != null) {
-                      c.expires = DateTime.fromMillisecondsSinceEpoch(
-                          (result['expires'] * 1000).toInt());
-                    }
-                  } on FormatException catch (_) {
-                    c = null;
-                  }
-                  return c;
-                })
-                .whereType<Cookie>()
-                .toList());
+                if (result['expires'] != null) {
+                  c.expires = DateTime.fromMillisecondsSinceEpoch((result['expires'] * 1000).toInt());
+                }
+              } on FormatException catch (_) {
+                c = null;
+              }
+              return c;
+            })
+            .whereType<Cookie>()
+            .toList());
   }
 
   /// Remove cookies with [currentUrl] for IOS and Android
   Future<void> removeCookie(String currentUrl) async {
     final listCookies = await getCookies(currentUrl);
-    final serializedCookies = listCookies
-        .where((element) => element.domain != null
-            ? currentUrl.contains(element.domain!)
-            : false)
-        .toList();
-    serializedCookies
-        .forEach((c) => c.expires = DateTime.fromMicrosecondsSinceEpoch(0));
+    final serializedCookies =
+        listCookies.where((element) => element.domain != null ? currentUrl.contains(element.domain!) : false).toList();
+    serializedCookies.forEach((c) => c.expires = DateTime.fromMicrosecondsSinceEpoch(0));
     await setCookies(serializedCookies);
   }
 
@@ -85,7 +76,7 @@ class WebviewCookieManager {
       };
 
       if (c.expires != null) {
-        output['expires'] = c.expires!.millisecondsSinceEpoch ~/ 1000;
+        output['expires'] = c.expires!.millisecondsSinceEpoch;
       }
 
       return output;
